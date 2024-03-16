@@ -3661,74 +3661,76 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # See: https://github.com/yt-dlp/yt-dlp/issues/501
             prs.append({**initial_pr, 'streamingData': None})
 
-        all_clients = set(clients)
-        clients = clients[::-1]
+        # all_clients = set(clients)
+        # clients = clients[::-1]
 
-        def append_client(*client_names):
-            """ Append the first client name that exists but not already used """
-            for client_name in client_names:
-                actual_client = _split_innertube_client(client_name)[0]
-                if actual_client in INNERTUBE_CLIENTS:
-                    if actual_client not in all_clients:
-                        clients.append(client_name)
-                        all_clients.add(actual_client)
-                        return
+        # def append_client(*client_names):
+        #     """ Append the first client name that exists but not already used """
+        #     for client_name in client_names:
+        #         actual_client = _split_innertube_client(client_name)[0]
+        #         if actual_client in INNERTUBE_CLIENTS:
+        #             if actual_client not in all_clients:
+        #                 clients.append(client_name)
+        #                 all_clients.add(actual_client)
+        #                 return
 
-        tried_iframe_fallback = False
+        # tried_iframe_fallback = False
+        # player_url = None
+        # skipped_clients = {}
+        # while clients:
+        #     client, base_client, variant = _split_innertube_client(clients.pop())
+        #     player_ytcfg = master_ytcfg if client == 'web' else {}
+        #     if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
+        #         player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
+
+        #     player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
+        #     require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
+        #     if 'js' in self._configuration_arg('player_skip'):
+        #         require_js_player = False
+        #         player_url = None
+
+        #     if not player_url and not tried_iframe_fallback and require_js_player:
+        #         player_url = self._download_player_url(video_id)
+        #         tried_iframe_fallback = True
+
+        #     try:
+        #         pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
+        #             client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
+        #     except ExtractorError as e:
+        #         self.report_warning(e)
+        #         continue
+
+        #     if pr_id := self._invalid_player_response(pr, video_id):
+        #         skipped_clients[client] = pr_id
+        #     elif pr:
+        #         # Save client name for introspection later
+        #         name = short_client_name(client)
+        #         sd = traverse_obj(pr, ('streamingData', {dict})) or {}
+        #         sd[STREAMING_DATA_CLIENT_NAME] = name
+        #         for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
+        #             f[STREAMING_DATA_CLIENT_NAME] = name
+        #         prs.append(pr)
+
+        #     # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
+        #     if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
+        #         append_client(f'{base_client}_creator')
+        #     elif self._is_agegated(pr):
+        #         if variant == 'tv_embedded':
+        #             append_client(f'{base_client}_embedded')
+        #         elif not variant:
+        #             append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
+
+        # if skipped_clients:
+        #     self.report_warning(
+        #         f'Skipping player responses from {"/".join(skipped_clients)} clients '
+        #         f'(got player responses for video "{"/".join(set(skipped_clients.values()))}" instead of "{video_id}")')
+        #     if not prs:
+        #         raise ExtractorError(
+        #             'All player responses are invalid. Your IP is likely being blocked by Youtube', expected=True)
+        # elif not prs:
+        #     raise ExtractorError('Failed to extract any player response')
+
         player_url = None
-        skipped_clients = {}
-        while clients:
-            client, base_client, variant = _split_innertube_client(clients.pop())
-            player_ytcfg = master_ytcfg if client == 'web' else {}
-            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
-                player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
-
-            player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
-            require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
-            if 'js' in self._configuration_arg('player_skip'):
-                require_js_player = False
-                player_url = None
-
-            if not player_url and not tried_iframe_fallback and require_js_player:
-                player_url = self._download_player_url(video_id)
-                tried_iframe_fallback = True
-
-            try:
-                pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
-            except ExtractorError as e:
-                self.report_warning(e)
-                continue
-
-            if pr_id := self._invalid_player_response(pr, video_id):
-                skipped_clients[client] = pr_id
-            elif pr:
-                # Save client name for introspection later
-                name = short_client_name(client)
-                sd = traverse_obj(pr, ('streamingData', {dict})) or {}
-                sd[STREAMING_DATA_CLIENT_NAME] = name
-                for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
-                    f[STREAMING_DATA_CLIENT_NAME] = name
-                prs.append(pr)
-
-            # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
-                append_client(f'{base_client}_creator')
-            elif self._is_agegated(pr):
-                if variant == 'tv_embedded':
-                    append_client(f'{base_client}_embedded')
-                elif not variant:
-                    append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
-
-        if skipped_clients:
-            self.report_warning(
-                f'Skipping player responses from {"/".join(skipped_clients)} clients '
-                f'(got player responses for video "{"/".join(set(skipped_clients.values()))}" instead of "{video_id}")')
-            if not prs:
-                raise ExtractorError(
-                    'All player responses are invalid. Your IP is likely being blocked by Youtube', expected=True)
-        elif not prs:
-            raise ExtractorError('Failed to extract any player response')
         return prs, player_url
 
     def _needs_live_processing(self, live_status, duration):
@@ -4033,7 +4035,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 query['pp'] = pp
             webpage = self._download_webpage(
                 webpage_url, video_id, fatal=False, query=query)
-
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
 
         player_responses, player_url = self._extract_player_responses(
@@ -4065,7 +4066,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return live_broadcast_details, live_status, streaming_data, formats, subtitles
 
-    def _real_extract(self, url):
+    def ___real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
 
@@ -4596,6 +4597,132 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     or get_first(microformats, 'isUnlisted', expected_type=bool))))
 
         info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
+
+        self.mark_watched(video_id, player_responses)
+
+        return info
+
+    def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
+        video_id = self._match_id(url)
+
+        base_url = self.http_scheme() + '//www.youtube.com/'
+        webpage_url = base_url + 'watch?v=' + video_id
+        webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
+
+        search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
+                        if webpage else (lambda x: None))
+
+        video_details = traverse_obj(player_responses, (..., 'videoDetails'), expected_type=dict)
+        microformats = traverse_obj(
+            player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
+            expected_type=dict)
+
+        translated_title = self._get_text(microformats, (..., 'title'))
+        video_title = (self._preferred_lang and translated_title
+                        or get_first(video_details, 'title')  # primary
+                        or translated_title
+                        or search_meta(['og:title', 'twitter:title', 'title']))
+
+        duration = (int_or_none(get_first(video_details, 'lengthSeconds'))
+                    or int_or_none(get_first(microformats, 'lengthSeconds'))
+                    or parse_duration(search_meta('duration')) or None)
+
+        channel_id = self.ucid_or_none(str_or_none(
+            get_first(video_details, 'channelId')
+            or get_first(microformats, 'externalChannelId')
+            or search_meta('channelId')))
+
+        info = {
+            'id': video_id,
+            'title': video_title,
+            'channel_id': channel_id,
+            'duration': duration,
+        }
+
+        subtitles = {}
+        pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
+        if pctr:
+            def get_lang_code(track):
+                return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
+                        or track.get('languageCode'))
+
+            # Converted into dicts to remove duplicates, prioritize non-auto-generated 'en' subs
+            captions = {
+                get_lang_code(sub): sub
+                for sub in traverse_obj(pctr, (..., 'captionTracks', ...)) if get_lang_code(sub) == 'en'}
+
+            def process_language(container, base_url, lang_code, sub_name, query):
+                lang_subs = container.setdefault(lang_code, [])
+                for fmt in self._SUBTITLE_FORMATS:
+                    query.update({
+                        'fmt': fmt,
+                    })
+                    lang_subs.append({
+                        'ext': fmt,
+                        'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
+                        'name': sub_name,
+                    })
+
+            # NB: Constructing the full subtitle dictionary is slow
+            for lang_code, caption_track in captions.items():
+                base_url = caption_track.get('baseUrl')
+                orig_lang = parse_qs(base_url).get('lang', [None])[-1]
+                if not base_url:
+                    continue
+                lang_name = self._get_text(caption_track, 'name', max_runs=1)
+                if caption_track.get('kind') != 'asr':
+                    if not lang_code:
+                        continue
+                    process_language(
+                        subtitles, base_url, lang_code, lang_name, {})
+
+        info['subtitles'] = subtitles
+
+        initial_data = None
+        if webpage:
+            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
+            if not traverse_obj(initial_data, 'contents'):
+                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
+                initial_data = None
+        if not initial_data:
+            query = {'videoId': video_id}
+            query.update(self._get_checkok_params())
+            initial_data = self._extract_response(
+                item_id=video_id, ep='next', fatal=False,
+                ytcfg=master_ytcfg, query=query, check_get_keys='contents',
+                headers=self.generate_api_headers(ytcfg=master_ytcfg),
+                note='Downloading initial data API JSON')
+
+        contents = traverse_obj(
+            initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
+            expected_type=list, default=[])
+
+        vpir = get_first(contents, 'videoPrimaryInfoRenderer')
+        vsir = get_first(contents, 'videoSecondaryInfoRenderer')
+        if vsir:
+            vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
+            info.update({
+                'channel': self._get_text(vor, 'title'),
+                # 'channel_follower_count': self._get_count(vor, 'subscriberCountText')
+            })
+
+        info.update({
+            'uploader': info.get('channel'),
+        })
+        # The upload date for scheduled, live and past live streams / premieres in microformats
+        # may be different from the stream date. Although not in UTC, we will prefer it in this case.
+        # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
+        upload_date = (
+            unified_strdate(get_first(microformats, 'uploadDate'))
+            or unified_strdate(search_meta('uploadDate')))
+        # if not upload_date or (
+        #     live_status in ('not_live', None)
+        #     and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
+        # ):
+        #     upload_date = strftime_or_none(
+        #         self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
+        info['upload_date'] = upload_date
 
         self.mark_watched(video_id, player_responses)
 

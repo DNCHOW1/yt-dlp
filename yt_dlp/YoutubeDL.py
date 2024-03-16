@@ -2793,29 +2793,29 @@ class YoutubeDL:
         # Filter out malformed formats for better extraction robustness
         formats = list(filter(is_wellformed, formats or []))
 
-        if not formats:
-            self.raise_no_formats(info_dict)
+        # if not formats:
+        #     self.raise_no_formats(info_dict)
 
-        for format in formats:
-            sanitize_string_field(format, 'format_id')
-            sanitize_numeric_fields(format)
-            format['url'] = sanitize_url(format['url'])
-            if format.get('ext') is None:
-                format['ext'] = determine_ext(format['url']).lower()
-            if format.get('protocol') is None:
-                format['protocol'] = determine_protocol(format)
-            if format.get('resolution') is None:
-                format['resolution'] = self.format_resolution(format, default=None)
-            if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
-                format['dynamic_range'] = 'SDR'
-            if format.get('aspect_ratio') is None:
-                format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
-            # For fragmented formats, "tbr" is often max bitrate and not average
-            if (('manifest-filesize-approx' in self.params['compat_opts'] or not format.get('manifest_url'))
-                    and info_dict.get('duration') and format.get('tbr')
-                    and not format.get('filesize') and not format.get('filesize_approx')):
-                format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
-            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
+        # for format in formats:
+        #     sanitize_string_field(format, 'format_id')
+        #     sanitize_numeric_fields(format)
+        #     format['url'] = sanitize_url(format['url'])
+        #     if format.get('ext') is None:
+        #         format['ext'] = determine_ext(format['url']).lower()
+        #     if format.get('protocol') is None:
+        #         format['protocol'] = determine_protocol(format)
+        #     if format.get('resolution') is None:
+        #         format['resolution'] = self.format_resolution(format, default=None)
+        #     if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
+        #         format['dynamic_range'] = 'SDR'
+        #     if format.get('aspect_ratio') is None:
+        #         format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
+        #     # For fragmented formats, "tbr" is often max bitrate and not average
+        #     if (('manifest-filesize-approx' in self.params['compat_opts'] or not format.get('manifest_url'))
+        #             and info_dict.get('duration') and format.get('tbr')
+        #             and not format.get('filesize') and not format.get('filesize_approx')):
+        #         format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
+        #     format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
 
         # Safeguard against old/insecure infojson when using --load-info-json
         if info_dict.get('http_headers'):
@@ -2897,97 +2897,97 @@ class YoutubeDL:
             self.__forced_printings(info_dict)
             return info_dict
 
-        format_selector = self.format_selector
-        while True:
-            if interactive_format_selection:
-                req_format = input(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
-                                   + '(Press ENTER for default, or Ctrl+C to quit)'
-                                   + self._format_screen(': ', self.Styles.EMPHASIS))
-                try:
-                    format_selector = self.build_format_selector(req_format) if req_format else None
-                except SyntaxError as err:
-                    self.report_error(err, tb=False, is_error=False)
-                    continue
+        # format_selector = self.format_selector
+        # while True:
+        #     if interactive_format_selection:
+        #         req_format = input(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
+        #                            + '(Press ENTER for default, or Ctrl+C to quit)'
+        #                            + self._format_screen(': ', self.Styles.EMPHASIS))
+        #         try:
+        #             format_selector = self.build_format_selector(req_format) if req_format else None
+        #         except SyntaxError as err:
+        #             self.report_error(err, tb=False, is_error=False)
+        #             continue
 
-            if format_selector is None:
-                req_format = self._default_format_spec(info_dict, download=download)
-                self.write_debug(f'Default format spec: {req_format}')
-                format_selector = self.build_format_selector(req_format)
+        #     if format_selector is None:
+        #         req_format = self._default_format_spec(info_dict, download=download)
+        #         self.write_debug(f'Default format spec: {req_format}')
+        #         format_selector = self.build_format_selector(req_format)
 
-            formats_to_download = list(format_selector({
-                'formats': formats,
-                'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
-                'incomplete_formats': (all(f.get('vcodec') == 'none' for f in formats)  # No formats with video
-                                       or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
-            }))
-            if interactive_format_selection and not formats_to_download:
-                self.report_error('Requested format is not available', tb=False, is_error=False)
-                continue
-            break
+        #     formats_to_download = list(format_selector({
+        #         'formats': formats,
+        #         'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
+        #         'incomplete_formats': (all(f.get('vcodec') == 'none' for f in formats)  # No formats with video
+        #                                or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
+        #     }))
+        #     if interactive_format_selection and not formats_to_download:
+        #         self.report_error('Requested format is not available', tb=False, is_error=False)
+        #         continue
+        #     break
 
-        if not formats_to_download:
-            if not self.params.get('ignore_no_formats_error'):
-                raise ExtractorError(
-                    'Requested format is not available. Use --list-formats for a list of available formats',
-                    expected=True, video_id=info_dict['id'], ie=info_dict['extractor'])
-            self.report_warning('Requested format is not available')
-            # Process what we can, even without any available formats.
-            formats_to_download = [{}]
+        # if not formats_to_download:
+        #     if not self.params.get('ignore_no_formats_error'):
+        #         raise ExtractorError(
+        #             'Requested format is not available. Use --list-formats for a list of available formats',
+        #             expected=True, video_id=info_dict['id'], ie=info_dict['extractor'])
+        #     self.report_warning('Requested format is not available')
+        #     # Process what we can, even without any available formats.
+        #     formats_to_download = [{}]
 
-        requested_ranges = tuple(self.params.get('download_ranges', lambda *_: [{}])(info_dict, self))
-        best_format, downloaded_formats = formats_to_download[-1], []
-        if download:
-            if best_format and requested_ranges:
-                def to_screen(*msg):
-                    self.to_screen(f'[info] {info_dict["id"]}: {" ".join(", ".join(variadic(m)) for m in msg)}')
+        # requested_ranges = tuple(self.params.get('download_ranges', lambda *_: [{}])(info_dict, self))
+        # best_format, downloaded_formats = formats_to_download[-1], []
+        # if download:
+        #     if best_format and requested_ranges:
+        #         def to_screen(*msg):
+        #             self.to_screen(f'[info] {info_dict["id"]}: {" ".join(", ".join(variadic(m)) for m in msg)}')
 
-                to_screen(f'Downloading {len(formats_to_download)} format(s):',
-                          (f['format_id'] for f in formats_to_download))
-                if requested_ranges != ({}, ):
-                    to_screen(f'Downloading {len(requested_ranges)} time ranges:',
-                              (f'{c["start_time"]:.1f}-{c["end_time"]:.1f}' for c in requested_ranges))
-            max_downloads_reached = False
+        #         to_screen(f'Downloading {len(formats_to_download)} format(s):',
+        #                   (f['format_id'] for f in formats_to_download))
+        #         if requested_ranges != ({}, ):
+        #             to_screen(f'Downloading {len(requested_ranges)} time ranges:',
+        #                       (f'{c["start_time"]:.1f}-{c["end_time"]:.1f}' for c in requested_ranges))
+        #     max_downloads_reached = False
 
-            for fmt, chapter in itertools.product(formats_to_download, requested_ranges):
-                new_info = self._copy_infodict(info_dict)
-                new_info.update(fmt)
-                offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
-                end_time = offset + min(chapter.get('end_time', duration), duration)
-                # duration may not be accurate. So allow deviations <1sec
-                if end_time == float('inf') or end_time > offset + duration + 1:
-                    end_time = None
-                if chapter or offset:
-                    new_info.update({
-                        'section_start': offset + chapter.get('start_time', 0),
-                        'section_end': end_time,
-                        'section_title': chapter.get('title'),
-                        'section_number': chapter.get('index'),
-                    })
-                downloaded_formats.append(new_info)
-                try:
-                    self.process_info(new_info)
-                except MaxDownloadsReached:
-                    max_downloads_reached = True
-                self._raise_pending_errors(new_info)
-                # Remove copied info
-                for key, val in tuple(new_info.items()):
-                    if info_dict.get(key) == val:
-                        new_info.pop(key)
-                if max_downloads_reached:
-                    break
+        #     for fmt, chapter in itertools.product(formats_to_download, requested_ranges):
+        #         new_info = self._copy_infodict(info_dict)
+        #         new_info.update(fmt)
+        #         offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
+        #         end_time = offset + min(chapter.get('end_time', duration), duration)
+        #         # duration may not be accurate. So allow deviations <1sec
+        #         if end_time == float('inf') or end_time > offset + duration + 1:
+        #             end_time = None
+        #         if chapter or offset:
+        #             new_info.update({
+        #                 'section_start': offset + chapter.get('start_time', 0),
+        #                 'section_end': end_time,
+        #                 'section_title': chapter.get('title'),
+        #                 'section_number': chapter.get('index'),
+        #             })
+        #         downloaded_formats.append(new_info)
+        #         try:
+        #             self.process_info(new_info)
+        #         except MaxDownloadsReached:
+        #             max_downloads_reached = True
+        #         self._raise_pending_errors(new_info)
+        #         # Remove copied info
+        #         for key, val in tuple(new_info.items()):
+        #             if info_dict.get(key) == val:
+        #                 new_info.pop(key)
+        #         if max_downloads_reached:
+        #             break
 
-            write_archive = {f.get('__write_download_archive', False) for f in downloaded_formats}
-            assert write_archive.issubset({True, False, 'ignore'})
-            if True in write_archive and False not in write_archive:
-                self.record_download_archive(info_dict)
+        #     write_archive = {f.get('__write_download_archive', False) for f in downloaded_formats}
+        #     assert write_archive.issubset({True, False, 'ignore'})
+        #     if True in write_archive and False not in write_archive:
+        #         self.record_download_archive(info_dict)
 
-            info_dict['requested_downloads'] = downloaded_formats
-            info_dict = self.run_all_pps('after_video', info_dict)
-            if max_downloads_reached:
-                raise MaxDownloadsReached()
+        #     info_dict['requested_downloads'] = downloaded_formats
+        #     info_dict = self.run_all_pps('after_video', info_dict)
+        #     if max_downloads_reached:
+        #         raise MaxDownloadsReached()
 
         # We update the info dict with the selected best quality format (backwards compatibility)
-        info_dict.update(best_format)
+        # info_dict.update(best_format)
         return info_dict
 
     def process_subtitles(self, video_id, normal_subtitles, automatic_captions):
