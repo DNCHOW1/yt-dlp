@@ -3661,74 +3661,71 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # See: https://github.com/yt-dlp/yt-dlp/issues/501
             prs.append({**initial_pr, 'streamingData': None})
 
-        # all_clients = set(clients)
-        # clients = clients[::-1]
+        all_clients = set(clients)
+        clients = clients[::-1]
 
-        # def append_client(*client_names):
-        #     """ Append the first client name that exists but not already used """
-        #     for client_name in client_names:
-        #         actual_client = _split_innertube_client(client_name)[0]
-        #         if actual_client in INNERTUBE_CLIENTS:
-        #             if actual_client not in all_clients:
-        #                 clients.append(client_name)
-        #                 all_clients.add(actual_client)
-        #                 return
+        def append_client(*client_names):
+            """ Append the first client name that exists but not already used """
+            for client_name in client_names:
+                actual_client = _split_innertube_client(client_name)[0]
+                if actual_client in INNERTUBE_CLIENTS:
+                    if actual_client not in all_clients:
+                        clients.append(client_name)
+                        all_clients.add(actual_client)
+                        return
 
-        # tried_iframe_fallback = False
-        # player_url = None
-        # skipped_clients = {}
-        # while clients:
-        #     client, base_client, variant = _split_innertube_client(clients.pop())
-        #     player_ytcfg = master_ytcfg if client == 'web' else {}
-        #     if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
-        #         player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
+        tried_iframe_fallback = False
+        player_url = None
+        skipped_clients = {}
+        while clients:
+            client, base_client, variant = _split_innertube_client(clients.pop())
+            player_ytcfg = master_ytcfg if client == 'web' else {}
+            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
+                player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
-        #     player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
-        #     require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
-        #     if 'js' in self._configuration_arg('player_skip'):
-        #         require_js_player = False
-        #         player_url = None
+            require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
+            if 'js' in self._configuration_arg('player_skip'):
+                require_js_player = False
 
-        #     if not player_url and not tried_iframe_fallback and require_js_player:
-        #         player_url = self._download_player_url(video_id)
-        #         tried_iframe_fallback = True
+            if not player_url and not tried_iframe_fallback and require_js_player:
+                tried_iframe_fallback = True
 
-        #     try:
-        #         pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-        #             client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
-        #     except ExtractorError as e:
-        #         self.report_warning(e)
-        #         continue
+            try:
+                pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
+            except ExtractorError as e:
+                self.report_warning(e)
+                continue
 
-        #     if pr_id := self._invalid_player_response(pr, video_id):
-        #         skipped_clients[client] = pr_id
-        #     elif pr:
-        #         # Save client name for introspection later
-        #         name = short_client_name(client)
-        #         sd = traverse_obj(pr, ('streamingData', {dict})) or {}
-        #         sd[STREAMING_DATA_CLIENT_NAME] = name
-        #         for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
-        #             f[STREAMING_DATA_CLIENT_NAME] = name
-        #         prs.append(pr)
+            if pr_id := self._invalid_player_response(pr, video_id):
+                skipped_clients[client] = pr_id
+            elif pr:
+                # Save client name for introspection later
+                name = short_client_name(client)
+                sd = traverse_obj(pr, ('streamingData', {dict})) or {}
+                sd[STREAMING_DATA_CLIENT_NAME] = name
+                for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
+                    f[STREAMING_DATA_CLIENT_NAME] = name
+                prs.append(pr)
 
-        #     # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-        #     if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
-        #         append_client(f'{base_client}_creator')
-        #     elif self._is_agegated(pr):
-        #         if variant == 'tv_embedded':
-        #             append_client(f'{base_client}_embedded')
-        #         elif not variant:
-        #             append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
+            # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
+            if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
+                append_client(f'{base_client}_creator')
+            elif self._is_agegated(pr):
+                if variant == 'tv_embedded':
+                    append_client(f'{base_client}_embedded')
+                elif not variant:
+                    append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
 
-        # if skipped_clients:
-        #     self.report_warning(
-        #         f'Skipping player responses from {"/".join(skipped_clients)} clients '
-        #         f'(got player responses for video "{"/".join(set(skipped_clients.values()))}" instead of "{video_id}")')
-        #     if not prs:
-        #         raise ExtractorError(
-        #             'All player responses are invalid. Your IP is likely being blocked by Youtube', expected=True)
-        # elif not prs:
-        #     raise ExtractorError('Failed to extract any player response')
+        if skipped_clients:
+            self.report_warning(
+                f'Skipping player responses from {"/".join(skipped_clients)} clients '
+                f'(got player responses for video "{"/".join(set(skipped_clients.values()))}" instead of "{video_id}")')
+            if not prs:
+                raise ExtractorError(
+                    'All player responses are invalid. Your IP is likely being blocked by Youtube', expected=True)
+        elif not prs:
+            raise ExtractorError('Failed to extract any player response')
 
         player_url = None
         return prs, player_url
@@ -4640,7 +4637,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'duration': duration,
         }
 
-        subtitles = {}
+        subtitles = ""
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
         if pctr:
             def get_lang_code(track):
@@ -4650,34 +4647,45 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Converted into dicts to remove duplicates, prioritize non-auto-generated 'en' subs
             captions = {
                 get_lang_code(sub): sub
-                for sub in traverse_obj(pctr, (..., 'captionTracks', ...)) if get_lang_code(sub) == 'en'}
+                for sub in traverse_obj(pctr, (..., 'captionTracks', ...)) if 'en' in get_lang_code(sub)}
 
-            def process_language(container, base_url, lang_code, sub_name, query):
-                lang_subs = container.setdefault(lang_code, [])
-                for fmt in self._SUBTITLE_FORMATS:
-                    query.update({
-                        'fmt': fmt,
-                    })
-                    lang_subs.append({
-                        'ext': fmt,
-                        'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
-                        'name': sub_name,
-                    })
+            if 'en' not in captions:
+                if 'a-en' in captions:
+                    captions['en'] = captions['a-en'] # Default en to auto-generated transcript
+                for sub_code, sub in captions.items():
+                    if sub_code != 'a-en' and 'en' in sub_code:
+                        captions['en'] = sub
+                        break
 
-            # NB: Constructing the full subtitle dictionary is slow
-            for lang_code, caption_track in captions.items():
-                base_url = caption_track.get('baseUrl')
-                orig_lang = parse_qs(base_url).get('lang', [None])[-1]
-                if not base_url:
-                    continue
-                lang_name = self._get_text(caption_track, 'name', max_runs=1)
-                if caption_track.get('kind') != 'asr':
-                    if not lang_code:
-                        continue
-                    process_language(
-                        subtitles, base_url, lang_code, lang_name, {})
+            if "en" in captions: 
+                subtitles = captions["en"]["baseUrl"] + "&fmt=ttml"
 
-        info['subtitles'] = subtitles
+            # def process_language(container, base_url, lang_code, sub_name, query):
+            #     lang_subs = container.setdefault(lang_code, [])
+            #     for fmt in self._SUBTITLE_FORMATS:
+            #         query.update({
+            #             'fmt': fmt,
+            #         })
+            #         lang_subs.append({
+            #             'ext': fmt,
+            #             'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
+            #             'name': sub_name,
+            #         })
+
+            # # NB: Constructing the full subtitle dictionary is slow
+            # for lang_code, caption_track in captions.items():
+            #     base_url = caption_track.get('baseUrl')
+            #     orig_lang = parse_qs(base_url).get('lang', [None])[-1]
+            #     if not base_url:
+            #         continue
+            #     lang_name = self._get_text(caption_track, 'name', max_runs=1)
+            #     if caption_track.get('kind') != 'asr':
+            #         if not lang_code:
+            #             continue
+            #         process_language(
+            #             subtitles, base_url, lang_code, lang_name, {})
+
+        info['subtitle_url'] = subtitles
 
         initial_data = None
         if webpage:
